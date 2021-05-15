@@ -1,0 +1,579 @@
+---
+title: "German Credit Assignment"
+author: "Simranjeet Singh"
+date: "20/04/2021"
+output:
+  pdf_document: default
+  word_document: default
+---
+```{r,comment=NA,echo=FALSE}
+#install.packages("scorecard")
+#install.packages("ROCit")
+#install.packages("ROSE")
+```
+
+# THE GERMAN CREDIT DATA
+```{r,comment=NA,echo=FALSE}
+data<-readxl::read_excel(path = "~/Desktop/CARDIFF UNI/Credit Risk Scoring/coursework/GermanCreditData.xlsx",sheet = 1)
+#data<-readxl::read_excel("GermanCreditData.xlsx",sheet=1)
+data<-data.frame(data)
+head(data)
+
+
+```
+## Clean the subsets if necessary.
+```{r,comment=NA}
+# There is no need to clean dataset because there is no missing value in dataset
+missing_value<- sum(is.na(data))
+```
+how many missing value in data set :`r missing_value`
+
+
+### Subset 1: the applicants with Checking = 1 or Checking = 2
+
+here, we define Subset1 in which contains checking=1 and checking=2
+
+```{r,comment=NA,echo=FALSE}
+Checking_1<-subset(data,Checking==1 )
+Checking_2<-subset(data,Checking==2)
+subset1<-rbind(Checking_1,Checking_2)
+head(subset1)
+```
+
+In Subset 1 total number of bad customers is 240 and total number of Good are 303.
+
+i.e
+```{r,echo=FALSE,comment=NA}
+value<-c(240,303)
+name<-c("number of Bad","number of Good")
+score<-data.frame(name,value)
+score
+```
+### Subset 2: the applicants with Checking = 3 or Checking = 4
+now, we define Subset 2 in which contains checking=3 and checking=4
+
+```{r,comment=NA,echo=FALSE}
+Checking_3<-subset(data,Checking==3 )
+Checking_4<-subset(data,Checking==4)
+subset2<-rbind(Checking_3,Checking_4)
+head(subset2)
+```
+
+In Subset 2 total number of bad customers is 60 and total number of Good are 397
+i.e
+```{r,echo=FALSE,comment=NA}
+value<-c(60,397)
+name<-c("number of Bad","number of Good")
+score<-data.frame(name,value)
+score
+```
+
+## Question 2.
+
+### a.
+```{r,comment=NA}
+table(data$Good)
+```
+
+As we see, we have 70 percent is good customers and 30 percent is Bad customers so we decide to consider 70 % for traing set and rest of the 30 percent for Validation set
+
+In our subset1 has 543 rows and in Subset2 contains 457 rows as a rule of thum we consider 70 percent
+of data for training set and rest of the 30 percent data for validation set.
+
+### b.
+as our dataset is not huge(only 543 and 457 rows in Subset1 and Subset2) so, we can not further
+divide our validation into testing set (i.e we only consider validation set)
+
+### c.
+There is no issue face while proceeding splitting task.
+
+```{r,echo=FALSE}
+#For subset1, establish a training set and validation set.
+train_validation <- scorecard::split_df(subset1, y = "Good", ratio = c(0.7, 0.3), seed = 42,
+               
+              name_dfs = c("train", "valid"))
+train_1 <- train_validation$train 
+valid_1<- train_validation$valid
+```
+
+```{r,echo=FALSE,comment=NA}
+table(train_1$History1)
+```
+
+```{r,echo=FALSE,}
+#For subset2, establish a training set and validation set.
+train_validation <- scorecard::split_df(subset2, y = "Good", ratio = c(0.7, 0.3), seed = 42,
+                  name_dfs = c("train", "valid"))
+train_2 <- train_validation$train 
+valid_2<- train_validation$valid
+```
+
+## Question 3
+
+### Variable Selection For Subset 1
+
+here, we consider those Four variables which gives maximum Information Value as shown in bellow table. 
+```{r,comment=NA,echo=FALSE}
+information_value_1<-Information::create_infotables(train_1,NULL,y="Good",bins = 6)
+information_value_1$Summary
+```
+Four variables are History, Duration, Amount and Savings there corresponding Information Values(IV) is 24.8%,24.1%,20% and 16% respectively.
+
+Continuous variable is : Amount
+
+Categorical variable are :History and Savings ( both variables contain 5 different categories )
+ie.
+
+```{r}
+table(subset1$Savings)
+```
+```{r}
+table(subset1$History)
+```
+### Varible Selection For Subset 2
+```{r,comment=NA,echo=FALSE}
+information_value_2<-Information::create_infotables(train_2,NULL,y="Good",bins = 6)
+information_value_2$Summary
+```
+
+
+From Subset2 we consider only those four variables namely Purpose, Duration, Amount and Employed there corresponding Information Values(IV) is 42%,35%,33% and 30% respectively. These Four variables has maximum Information Value when we convert into set of bins (intervals). which I have shown in question 4 
+
+Continuous variable is : Amount 
+
+Categorical variable are:Emploed and Purpose ( both variables contain more then 2 different categories )
+
+ie.
+```{r}
+table(subset2$Purpose)
+```
+
+```{r}
+table(subset2$Emploed)
+```
+
+
+## Question 4
+
+
+```{r,echo=FALSE,comment=NA}
+# Now we apply weight of evidence on subset1( traing set of subset1) and choose best four.
+bins<-scorecard::woebin(train_1, y="Good",method = "tree")
+options(digits = 3)
+Amount_1<-bins$Amount[,c(1,2,3,5,6,7,8,9,10)]
+#Amount_1
+History_1<-bins$History[,c(1,2,3,5,6,7,8,9,10)]
+#History_1
+Duration_1<-bins$Duration[,c(1,2,3,5,6,7,8,9,10)]
+#Duration_1
+Saving_1<-bins$Savings[,c(1,2,3,5,6,7,8,9,10)]
+#Saving_1
+Purpose_1<-bins$Purpose[,c(1,2,3,5,6,7,8,9,10)]
+#Purpose_1
+Emploed_1<-bins$Emploed[,c(1,2,3,5,6,7,8,9,10)]
+#Emploed_1
+Installp_1<-bins$Installp[,c(1,2,3,5,6,7,8,9,10)]
+#Installp_1
+marital_1<-bins$marital[,c(1,2,3,5,6,7,8,9,10)]
+#marital_1
+Coapp_1<-bins$Coapp[,c(1,2,3,5,6,7,8,9,10)]
+#Coapp_1
+Resident_1<-bins$Resident[,c(1,2,3,5,6,7,8,9,10)]
+#Resident_1
+Property_1<-bins$Property[,c(1,2,3,5,6,7,8,9,10)]
+#Property_1
+Age_1<-bins$Age[,c(1,2,3,5,6,7,8,9,10)]
+#Age_1
+Other_1<-bins$Other[,c(1,2,3,5,6,7,8,9,10)]
+#Other_1
+Housing_1<-bins$housing[,c(1,2,3,5,6,7,8,9,10)]
+#Housing_1
+Existcr_1<-bins$Existcr[,c(1,2,3,5,6,7,8,9,10)]
+#Existcr_1
+Job_1<-bins$Job[,c(1,2,3,5,6,7,8,9,10)]
+#Job_1
+Depends_1<-bins$Depends[,c(1,2,3,5,6,7,8,9,10)]
+#Depends_1
+Telephone_1<-bins$Telephone[,c(1,2,3,5,6,7,8,9,10)]
+#Telephone_1
+Foreign_1<-bins$Foreign[,c(1,2,3,5,6,7,8,9,10)]
+#Foreign_1
+```
+## Drop variable
+Keep only Four Variables in Subset 1 as well as in Subset 2 and drop all rest of the variable.
+
+## Subset 1: bining variable by using Coarse Classification
+here we divide selected four variables into a defined set of bins (intervals) or the grouping of different attributes of a Variable(by using Coarse Classification )
+
+
+```{r,echo=FALSE,comment=NA}
+woebin_df<-rbind(Amount_1,History_1,Duration_1,Saving_1)
+woebin_df
+```
+
+
+```{r,echo=FALSE,comment=NA}
+#here we apply weight of evidence(WOE) on subset2( traing set of Subset2) and choose best four variable.
+bins<-scorecard::woebin(train_2, y="Good",method = "tree")
+options(digits = 3)
+
+Purpose_2<-bins$Purpose[,c(1,2,3,5,6,7,8,9,10)]
+#Purpose_2
+Duration_2<-bins$Duration[,c(1,2,3,5,6,7,8,9,10)]
+#Duration_2
+Amount_2<-bins$Amount[,c(1,2,3,5,6,7,8,9,10)]
+#Amount_2
+Emploed_2<-bins$Emploed[,c(1,2,3,5,6,7,8,9,10)]
+#Emploed_2
+History_2<-bins$History[,c(1,2,3,5,6,7,8,9,10)]
+#History_2
+Saving_2<-bins$Savings[,c(1,2,3,5,6,7,8,9,10)]
+#Saving_2
+Installp_2<-bins$Installp[,c(1,2,3,5,6,7,8,9,10)]
+#Installp_2
+marital_2<-bins$marital[,c(1,2,3,5,6,7,8,9,10)]
+#marital_2
+Coapp_2<-bins$Coapp[,c(1,2,3,5,6,7,8,9,10)]
+#Coapp_2
+Resident_2<-bins$Resident[,c(1,2,3,5,6,7,8,9,10)]
+#Resident_2
+Property_2<-bins$Property[,c(1,2,3,5,6,7,8,9,10)]
+#Property_2
+Age_2<-bins$Age[,c(1,2,3,5,6,7,8,9,10)]
+#Age_2
+Other_2<-bins$Other[,c(1,2,3,5,6,7,8,9,10)]
+#Other_2
+Housing_2<-bins$housing[,c(1,2,3,5,6,7,8,9,10)]
+#Housing_2
+Existcr_2<-bins$Existcr[,c(1,2,3,5,6,7,8,9,10)]
+#Existcr_2
+Jobs_2<-bins$Job[,c(1,2,3,5,6,7,8,9,10)]
+#Jobs_2
+Depends_2<-bins$Depends[,c(1,2,3,5,6,7,8,9,10)]
+#Depends_2
+Telephone_2<-bins$Telephone[,c(1,2,3,5,6,7,8,9,10)]
+#Telephone_2
+Foreign_2<-bins$Foreign[,c(1,2,3,5,6,7,8,9,10)]
+#Foreign_2
+```
+## Subset 2 variable  selection by using Coarse Classification
+
+here we divide selected four variables into a defined set of bins (intervals) or the grouping of different attributes of a Variable(by using Coarse Classification )
+ 
+```{r,echo=FALSE,comment=NA}
+woebin_df_2<-rbind(Purpose_2,Duration_2,Amount_2,Emploed_2)
+woebin_df_2
+```
+
+
+```{r,echo=FALSE,comment=NA}
+# drop extra variable from subset1 and subset2
+
+train_1<-train_1[,c(5,3,2,6,22)]
+valid_1<-valid_1[,c(5,3,2,6,22)]
+```
+
+```{r,comment=NA,echo=TRUE}
+train_1<-dplyr::mutate(train_1,History0=ifelse(History==0,1,0))
+train_1<-dplyr::mutate(train_1,History1=ifelse(History==1,1,0))
+train_1<-dplyr::mutate(train_1,History23=ifelse(History==2|History==3,1,0))
+train_1<-dplyr::mutate(train_1,Amount1000to2000=ifelse(Amount>=1000&Amount<2000,1,0))
+train_1<-dplyr::mutate(train_1,Amount2000to3600=ifelse(Amount>=2000&Amount<3600,1,0))
+train_1<-dplyr::mutate(train_1,Amount3600to4000=ifelse(Amount>=3600&Amount<4000,1,0))
+train_1<-dplyr::mutate(train_1,Amount4000to6800=ifelse(Amount>=4000&Amount<6800,1,0))
+train_1<-dplyr::mutate(train_1,Amount6800toabove=ifelse(Amount>6800,1,0))
+train_1<-dplyr::mutate(train_1,Duration0to12=ifelse(Duration<12,1,0))
+train_1<-dplyr::mutate(train_1,Duration12to14=ifelse(Duration>=12&Duration<14,1,0))
+train_1<-dplyr::mutate(train_1,Duration14to30=ifelse(Duration>=14&Duration<30,1,0))
+train_1<-dplyr::mutate(train_1,Duration44toabove=ifelse(Duration>=44,1,0))
+train_1<-dplyr::mutate(train_1,Savings1.2=ifelse(Savings<3,1,0))
+train_1<-dplyr::mutate(train_1,Savings5=ifelse(Savings>=5,1,0))
+```
+
+```{r,comment=NA,echo=FALSE}
+valid_1<-dplyr::mutate(valid_1,History0=ifelse(History==0,1,0))
+valid_1<-dplyr::mutate(valid_1,History1=ifelse(History==1,1,0))
+valid_1<-dplyr::mutate(valid_1,History23=ifelse(History==2|History==3,1,0))
+valid_1<-dplyr::mutate(valid_1,Amount1000to2000=ifelse(Amount>=1000&Amount<2000,1,0))
+valid_1<-dplyr::mutate(valid_1,Amount2000to3600=ifelse(Amount>=2000&Amount<3600,1,0))
+valid_1<-dplyr::mutate(valid_1,Amount3600to4000=ifelse(Amount>=3600&Amount<4000,1,0))
+valid_1<-dplyr::mutate(valid_1,Amount4000to6800=ifelse(Amount>=4000&Amount<6800,1,0))
+valid_1<-dplyr::mutate(valid_1,Amount6800toabove=ifelse(Amount>6800,1,0))
+valid_1<-dplyr::mutate(valid_1,Duration0to12=ifelse(Duration<12,1,0))
+valid_1<-dplyr::mutate(valid_1,Duration12to14=ifelse(Duration>=12&Duration<14,1,0))
+valid_1<-dplyr::mutate(valid_1,Duration14to30=ifelse(Duration>=14&Duration<30,1,0))
+valid_1<-dplyr::mutate(valid_1,Duration44toabove=ifelse(Duration>=44,1,0))
+valid_1<-dplyr::mutate(valid_1,Savings1.2=ifelse(Savings<3,1,0))
+valid_1<-dplyr::mutate(valid_1,Savings5=ifelse(Savings>=5,1,0))
+```
+
+```{r,echo=FALSE,comment=NA}
+train_1<-subset(train_1,select=-c(Amount,Duration,History,Savings))
+```
+### Subset 1: Training set after Mutation
+here, four variable convert into 15 variable after bining by using coarse classification.
+```{r,echo=FALSE,comment=NA}
+train_1
+```
+```{r,echo=FALSE,comment=NA}
+valid_1<-subset(valid_1,select=-c(Amount,Duration,History,Savings))
+```
+
+### subset 1: Validation set after mutation
+here, four variable convert into 15 variable after bining by using coarse classification.
+```{r,echo=FALSE,comment=NA}
+
+# final vadidation set of subdet 1
+valid_1
+```
+
+```{r,echo=FALSE,comment=NA}
+train_2<-train_2[,c(4,2,5,7,22)]
+valid_2<-valid_2[,c(4,2,5,7,22)]
+```
+
+
+```{r,echo=FALSE,comment=NA}
+train_2<-dplyr::mutate(train_2,Purpose9=ifelse(Purpose==9,1,0))
+train_2<-dplyr::mutate(train_2,Purpose3=ifelse(Purpose==3,1,0))
+train_2<-dplyr::mutate(train_2,Purpose.1.4.8.X=ifelse(Purpose==8|Purpose==1|Purpose==4|Purpose=='X',1,0))
+
+train_2<-dplyr::mutate(train_2,Purpose.2.5=ifelse(Purpose==2|Purpose==5,1,0))
+train_2<-dplyr::mutate(train_2,Amount_0_to_2199=ifelse(Amount<2200,1,0))
+
+train_2<-dplyr::mutate(train_2,Amount_2600_to_3999=ifelse(Amount>=2600&Amount<4000,1,0))
+train_2<-dplyr::mutate(train_2,Amount_4000_to_4999=ifelse(Amount>=4000&Amount<5000,1,0))
+train_2<-dplyr::mutate(train_2,Amount_5000_to_above=ifelse(Amount>5000,1,0))
+train_2<-dplyr::mutate(train_2,Duration_0_to_7=ifelse(Duration<8,1,0))
+train_2<-dplyr::mutate(train_2,Duration_8_to_11=ifelse(Duration>=8&Duration<12,1,0))
+
+train_2<-dplyr::mutate(train_2,Duration_16_to_23=ifelse(Duration>=16&Duration<24,1,0))
+train_2<-dplyr::mutate(train_2,Duration_24_to_33=ifelse(Duration>=24&Duration<34,1,0))
+train_2<-dplyr::mutate(train_2,Duration_34_to_37=ifelse(Duration>=34&Duration<38,1,0))
+train_2<-dplyr::mutate(train_2,Duration_38_to_above=ifelse(Duration>=38,1,0))
+train_2<-dplyr::mutate(train_2,Emploed.1.2=ifelse(Emploed<3,1,0))
+train_2<-dplyr::mutate(train_2,Emploed3=ifelse(Emploed==3,1,0))
+
+train_2<-dplyr::mutate(train_2,Emploed5=ifelse(Emploed>=5,1,0))
+```
+
+```{r,comment=NA, echo=FALSE}
+valid_2<-dplyr::mutate(valid_2,Purpose9=ifelse(Purpose==9,1,0))
+valid_2<-dplyr::mutate(valid_2,Purpose3=ifelse(Purpose==3,1,0))
+valid_2<-dplyr::mutate(valid_2,Purpose.1.4.8.X=ifelse(Purpose==8|Purpose==1|Purpose==4|Purpose=='X',1,0))
+#valid_2<-mutate(valid_2,Purpose06=ifelse(Purpose==6|Purpose==0,1,0))
+valid_2<-dplyr::mutate(valid_2,Purpose.2.5=ifelse(Purpose==2|Purpose==5,1,0))
+valid_2<-dplyr::mutate(valid_2,Amount_0_to_2199=ifelse(Amount<2200,1,0))
+#valid_2<-mutate(valid_2,Amount2=ifelse(Amount>=2200&Amount<2600,1,0))
+valid_2<-dplyr::mutate(valid_2,Amount_2600_to_3999=ifelse(Amount>=2600&Amount<4000,1,0))
+valid_2<-dplyr::mutate(valid_2,Amount_4000_to_4999=ifelse(Amount>=4000&Amount<5000,1,0))
+valid_2<-dplyr::mutate(valid_2,Amount_5000_to_above=ifelse(Amount>5000,1,0))
+valid_2<-dplyr::mutate(valid_2,Duration_0_to_7=ifelse(Duration<8,1,0))
+valid_2<-dplyr::mutate(valid_2,Duration_8_to_11=ifelse(Duration>=8&Duration<12,1,0))
+#valid_2<-mutate(valid_2,Duration3=ifelse(Duration>=12&Duration<16,1,0))
+valid_2<-dplyr::mutate(valid_2,Duration_16_to_23=ifelse(Duration>=16&Duration<24,1,0))
+valid_2<-dplyr::mutate(valid_2,Duration_24_to_33=ifelse(Duration>=24&Duration<34,1,0))
+valid_2<-dplyr::mutate(valid_2,Duration_34_to_37=ifelse(Duration>=34&Duration<38,1,0))
+valid_2<-dplyr::mutate(valid_2,Duration_38_to_above=ifelse(Duration>=38,1,0))
+valid_2<-dplyr::mutate(valid_2,Emploed.1.2=ifelse(Emploed<3,1,0))
+valid_2<-dplyr::mutate(valid_2,Emploed3=ifelse(Emploed==3,1,0))
+#valid_2<-mutate(valid_2,Emploed3=ifelse(Emploed==4,1,0))
+valid_2<-dplyr::mutate(valid_2,Emploed5=ifelse(Emploed>=5,1,0))
+```
+
+```{r,echo=FALSE,comment=NA}
+train_2<-subset(train_2,select=-c(Purpose,Duration,Amount,Emploed))
+```
+
+```{r,echo=FALSE,comment=NA}
+valid_2<-subset(valid_2,select=-c(Purpose,Duration,Amount,Emploed))
+```
+
+### Subset 2: Training set after mutation
+here, four variable convert into 18 variable after bining by using coarse classification.
+
+```{r,echo=FALSE,comment=NA}
+train_2
+```
+### subset 2: Validation set after mutation
+```{r,echo=FALSE,comment=NA}
+valid_2
+```
+
+
+# Fitting Model
+
+## Fit Linear Regression Model on Subset 1
+ 
+```{r,echo=FALSE,comment=NA}
+Linear_mod_1<-lm(Good~.,data=train_1)
+summary(Linear_mod_1)
+#plot(Linear_mod_1)
+predict_1<-predict(Linear_mod_1,newdata =valid_1)
+prediction_1<-ROCR::prediction(predict_1,valid_1$Good)
+```
+## Fit Logistic Regression Model on Subset 1
+
+```{r,echo=FALSE,comment=NA}
+Logistic_mod_1<-glm(Good~.,data=train_1,family = binomial(link = "logit"))
+summary(Logistic_mod_1)
+#plot(Logistic_mod_1)
+predict_2<-predict(Logistic_mod_1,newdata=valid_1)
+prediction_2<-ROCR::prediction(predict_2,valid_1$Good)
+```
+## Fit Linear Regression Model on Subset 2
+```{r,echo=FALSE,comment=NA}
+Linear_mod_2<-lm(Good~.,data=train_2)
+summary(Linear_mod_2)
+#plot(Linear_mod_2)
+predict_3<-predict(Linear_mod_2,newdata =valid_2)
+prediction_3<-ROCR::prediction(predict_3,valid_2$Good)
+
+```
+## Fit Logistic Regression Model on Subset 2
+```{r,echo=FALSE,comment=NA}
+Logistic_mod_2<-glm(Good~.,data=train_2,family = binomial(link = "logit"))
+summary(Logistic_mod_2)
+#plot(Logistic_mod_2)
+predict_4<-predict(Logistic_mod_2,newdata=valid_2,)
+prediction_4<-ROCR::prediction(predict_4,valid_2$Good)
+```
+
+# RESULTS
+
+Applying on Subset1 and subset2  ROC Curve ,Gini Coefficient, Gini Curve and KS Value
+
+## Linear Regression model on subset 1
+
+
+```{r,echo=FALSE,comment=NA}
+par(pty="s")
+Linear_ROC_curve_1<-ROCR::performance(prediction_1,measure = "tpr",x.measure = "fpr",)
+plot(Linear_ROC_curve_1,main="Linear Regression",xlab="1-Specificity",ylab="Sensitivity",lwd=2 )
+abline(a=0,b=1)
+```
+```{r,echo=FALSE,comment=NA}
+Linear_AUC_curve_1<-ROCR::performance(prediction_1,measure = "auc")
+```
+The Area Under Curve of Linear regression model in suset 1 is : `r Linear_AUC_curve_1@y.values[[1]]`
+
+### GINI Coefficient 
+```{r,echo=FALSE,comment=NA}
+Gini_Linear_Regression_1<-reldist::gini(predict_1)
+```
+
+
+```{r,echo=FALSE,comment=NA}
+LC_Linea_model_1<-ineq::Lc(predict_1)
+plot(LC_Linea_model_1,main="Gini Curve")
+```
+
+The Gini coefficient of linear regression  is: `r Gini_Linear_Regression_1`
+
+## Ks Value
+```{r,echo=FALSE,comment=NA}
+Ks_value_Linear_1<-max(attr(Linear_ROC_curve_1,"y.values")[[1]]-attr(Linear_ROC_curve_1,'x.value')[[1]])
+```
+The KS value of linear regression model is: `r Ks_value_Linear_1`
+
+## Logistic Regression model on Subset 1
+
+### ROC curve
+```{r,echo=FALSE,comment=NA}
+par(pty="s")
+Logistic_ROC_curve_1<-ROCR::performance(prediction_2,measure = "tpr",x.measure = "fpr")
+plot(Logistic_ROC_curve_1,main="Logistic Regression",xlab="1-Specificity",ylab="Sensitivity",lwd=2)
+abline(a=0,b=1)
+```
+
+```{r,echo=FALSE,comment=NA}
+Logistic_AUC_curve_2<-ROCR::performance(prediction_2,measure = "auc")
+AUROC<-Logistic_AUC_curve_2@y.values[[1]]
+```
+The Area Under Curve of Logistic Regression is `r AUROC`
+
+### GINI Coefficient
+```{r,echo=FALSE,comment=NA}
+Gini_Logistic_Regression_1<-2*AUROC-1
+```
+The Gini Coefficient is: `r Gini_Logistic_Regression_1`
+
+### KS Value
+```{r,echo=FALSE,comment=NA}
+Ks_value_Log_2<-max(attr(Logistic_ROC_curve_1,"y.values")[[1]]-attr(Logistic_ROC_curve_1,'x.value')[[1]])
+```
+The Ks value is: `r Ks_value_Log_2`
+
+
+NOTE: the AUC of Linear Regression is `r Linear_AUC_curve_1@y.values[[1]]` and logistic regression is `r AUROC` on subset 1 
+
+## Linear Regression on Subset 2
+
+
+## ROC graph 
+```{r,echo=FALSE,comment=NA}
+par(pty="s")
+Linear_ROC_curve_2<-ROCR::performance(prediction_2,measure = "tpr",x.measure = "fpr")
+plot(Linear_ROC_curve_2,main="Linear Regression",xlab="1-Specificity",ylab="Sensitivity",lwd=2)
+abline(a=0,b=1)
+```
+```{r,echo=FALSE,comment=NA}
+Linear_AUC_curve_2<-ROCR::performance(prediction_3,measure = "auc")
+```
+The Area Under Curve of Linear Regression is:`r Linear_AUC_curve_2@y.values[[1]]`
+
+### GINI Coefficient and Curve
+```{r,echo=FALSE,comment=NA}
+Gini_Linear_Regression_2<-reldist::gini(predict_3)
+```
+
+```{r,echo=FALSE,comment=NA}
+LC_Linear_model1<-ineq::Lc(predict_3)
+plot(LC_Linear_model1,main="Gini Curve")
+```
+The Gini coefficient of linear regression model is `r Gini_Linear_Regression_2`
+
+### KS Value
+```{r,echo=FALSE,comment=NA}
+Ks_value_Linear_2<-max(attr(Linear_ROC_curve_2,"y.values")[[1]]-attr(Linear_ROC_curve_2,'x.value')[[1]])
+```
+the Ks value of Linear Regression model on subset 2 is : `r Ks_value_Linear_2`
+
+## Logistic Regression on Subset 2
+
+
+
+### ROC graph 
+
+```{r,echo=FALSE,comment=NA}
+par(pty="s")
+Logistic_ROC_curve_2<-ROCR::performance(prediction_2,measure = "tpr",x.measure = "fpr",)
+plot(Logistic_ROC_curve_2,main="Logistic Regression",xlab="1-Specificity",ylab="Sensitivity",lwd=2)
+abline(a=0,b=1)
+```
+```{r,echo=FALSE,comment=NA}
+Logistic_AUC_curve_2<-ROCR::performance(prediction_4,measure = "auc")
+```
+the Area Under curve Logistic Regression is: `r Logistic_AUC_curve_2@y.values[[1]]`
+
+
+### GINI Coefficient and Curve
+```{r,echo=FALSE,comment=NA}
+Gini_Logistic_Regression_2<-reldist::gini(predict_4)
+```
+```{r,echo=FALSE,comment=NA}
+Lc_logistic_model2<-ineq::Lc(predict_4)
+plot(Lc_logistic_model2,main="Gini Curve")
+```
+
+
+The Gini Coefficient of Logistic tegression is `r Gini_Logistic_Regression_2`
+
+### KS Value
+```{r,echo=FALSE,comment=NA}
+Ks_value_Log_2<-max(attr(Logistic_ROC_curve_2,"y.values")[[1]]-attr(Logistic_ROC_curve_2,'x.value')[[1]])
+```
+The Ks value of Logistic regression model is :`r Ks_value_Log_2`
+
+
+NOTE: the AUC of Linear Regression is `r Linear_AUC_curve_2@y.values[[1]] ` and logistic regression is `r Logistic_AUC_curve_2@y.values[[1]]` on subset 2
